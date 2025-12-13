@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { UserProfileDropdown } from "./UserProfileDropdown";
 
 export const Navbar = () => {
   const { user, signOut, loading } = useAuth();
@@ -40,12 +41,7 @@ export const Navbar = () => {
             {loading ? (
               <div className="h-9 w-20 bg-muted animate-pulse rounded-md" />
             ) : user ? (
-              <>
-                <span className="text-sm text-muted-foreground">{user.email}</span>
-                <Button variant="outline" size="sm" onClick={signOut}>
-                  Sign Out
-                </Button>
-              </>
+              <UserProfileDropdown />
             ) : (
               <>
                 <Link to="/auth">

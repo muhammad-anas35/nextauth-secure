@@ -1,11 +1,13 @@
-import { useState } from "react";
-import { MessageCircle, X, Send, Bot } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { MessageCircle, X, Send, Bot, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { useChatMessages } from "@/hooks/useChatMessages";
 
-interface Message {
+interface LocalMessage {
   id: string;
   content: string;
   role: "user" | "assistant";
@@ -13,8 +15,10 @@ interface Message {
 }
 
 export const ChatWidget = () => {
+  const { user } = useAuth();
+  const { messages: dbMessages, loading: dbLoading, addMessage, clearMessages } = useChatMessages();
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
+  const [localMessages, setLocalMessages] = useState<LocalMessage[]>([
     {
       id: "1",
       content: "Hello! I'm your AI assistant. How can I help you today?",
@@ -24,32 +28,97 @@ export const ChatWidget = () => {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const handleSend = () => {
+  // Sync database messages with local state when user is logged in
+  useEffect(() => {
+    if (user && dbMessages.length > 0) {
+      const convertedMessages: LocalMessage[] = dbMessages.map((msg) => ({
+        id: msg.id,
+        content: msg.content,
+        role: msg.role,
+        timestamp: new Date(msg.created_at),
+      }));
+      setLocalMessages([
+        {
+          id: "welcome",
+          content: "Hello! I'm your AI assistant. How can I help you today?",
+          role: "assistant",
+          timestamp: new Date(0),
+        },
+        ...convertedMessages,
+      ]);
+    }
+  }, [user, dbMessages]);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [localMessages, isLoading]);
+
+  const handleSend = async () => {
     if (!input.trim()) return;
 
-    const userMessage: Message = {
+    const userMessage: LocalMessage = {
       id: Date.now().toString(),
       content: input,
       role: "user",
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    setLocalMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
 
-    // Simulate response (will be replaced with actual API call)
-    setTimeout(() => {
-      const assistantMessage: Message = {
+    // Persist user message to database if logged in
+    if (user) {
+      await addMessage({
+        content: input,
+        role: "user",
+      });
+    }
+
+    // Simulate AI response (TODO: integrate with actual AI API)
+    setTimeout(async () => {
+      const assistantContent = user
+        ? "I've saved your message! The AI integration will provide real responses soon."
+        : "Please sign in to save your chat history. The AI integration will be implemented soon!";
+
+      const assistantMessage: LocalMessage = {
         id: (Date.now() + 1).toString(),
-        content: "I'm a demo response. The actual AI integration will be implemented soon!",
+        content: assistantContent,
         role: "assistant",
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, assistantMessage]);
+
+      setLocalMessages((prev) => [...prev, assistantMessage]);
+
+      // Persist assistant message to database if logged in
+      if (user) {
+        await addMessage({
+          content: assistantContent,
+          role: "assistant",
+        });
+      }
+
       setIsLoading(false);
     }, 1000);
+  };
+
+  const handleClearChat = async () => {
+    if (user) {
+      await clearMessages();
+    }
+    setLocalMessages([
+      {
+        id: "1",
+        content: "Hello! I'm your AI assistant. How can I help you today?",
+        role: "assistant",
+        timestamp: new Date(),
+      },
+    ]);
   };
 
   return (
@@ -81,42 +150,63 @@ export const ChatWidget = () => {
             </div>
             <div>
               <h3 className="font-semibold text-primary-foreground">AI Assistant</h3>
-              <p className="text-xs text-primary-foreground/70">Always here to help</p>
+              <p className="text-xs text-primary-foreground/70">
+                {user ? "Messages are saved" : "Sign in to save history"}
+              </p>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsOpen(false)}
-            className="text-primary-foreground hover:bg-primary-foreground/20"
-          >
-            <X className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-1">
+            {user && localMessages.length > 1 && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleClearChat}
+                className="text-primary-foreground hover:bg-primary-foreground/20"
+                title="Clear chat"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsOpen(false)}
+              className="text-primary-foreground hover:bg-primary-foreground/20"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
 
         {/* Messages */}
-        <ScrollArea className="flex-1 p-4">
+        <ScrollArea className="flex-1 p-4" ref={scrollRef}>
           <div className="space-y-4">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={cn(
-                  "flex",
-                  message.role === "user" ? "justify-end" : "justify-start"
-                )}
-              >
+            {dbLoading && user ? (
+              <div className="flex justify-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary"></div>
+              </div>
+            ) : (
+              localMessages.map((message) => (
                 <div
+                  key={message.id}
                   className={cn(
-                    "max-w-[80%] rounded-2xl px-4 py-2.5 text-sm",
-                    message.role === "user"
-                      ? "bg-primary text-primary-foreground rounded-br-md"
-                      : "bg-muted text-foreground rounded-bl-md"
+                    "flex",
+                    message.role === "user" ? "justify-end" : "justify-start"
                   )}
                 >
-                  {message.content}
+                  <div
+                    className={cn(
+                      "max-w-[80%] rounded-2xl px-4 py-2.5 text-sm",
+                      message.role === "user"
+                        ? "bg-primary text-primary-foreground rounded-br-md"
+                        : "bg-muted text-foreground rounded-bl-md"
+                    )}
+                  >
+                    {message.content}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
             {isLoading && (
               <div className="flex justify-start">
                 <div className="bg-muted rounded-2xl rounded-bl-md px-4 py-2.5">

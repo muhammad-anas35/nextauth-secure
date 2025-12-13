@@ -1,73 +1,79 @@
-# Welcome to your Lovable project
+# SecureAuth - Modern Authentication System
 
-## Project info
+A secure, modern authentication system built with React, TypeScript, and Tailwind CSS.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Features
 
-## How can I edit this code?
+- 🔐 Secure JWT-based authentication
+- 🎨 Modern, responsive UI with dark mode support
+- ⚡ Built with Vite for fast development
+- 🧩 Component library with shadcn/ui
+- 📱 Mobile-friendly design
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- **Frontend**: React 18, TypeScript
+- **Styling**: Tailwind CSS, shadcn/ui
+- **Build Tool**: Vite
+- **Backend**: Supabase
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Getting Started
 
-Changes made via Lovable will be committed automatically to this repo.
+### Prerequisites
 
-**Use your preferred IDE**
+- Node.js 18+ and npm
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Installation
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
+```bash
+# Clone the repository
 git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
+# Navigate to project directory
 cd <YOUR_PROJECT_NAME>
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Install dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The app will be available at `http://localhost:8080`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Available Scripts
 
-**Use GitHub Codespaces**
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run preview` | Preview production build |
+| `npm run lint` | Run ESLint |
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Project Structure
 
-## What technologies are used for this project?
+```
+├── public/          # Static assets
+├── src/
+│   ├── components/  # Reusable UI components
+│   ├── pages/       # Page components
+│   ├── hooks/       # Custom React hooks
+│   ├── lib/         # Utility functions
+│   └── main.tsx     # Application entry point
+├── supabase/        # Supabase functions
+└── index.html       # HTML template
+```
 
-This project is built with:
+## Deployment
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Build the project and deploy to your preferred hosting:
 
-## How can I deploy this project?
+```bash
+npm run build
+```
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+The `dist` folder will contain your production-ready files.
 
-## Can I connect a custom domain to my Lovable project?
+## License
 
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+MIT License

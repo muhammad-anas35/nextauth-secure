@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
 const signupSchema = z.object({
+  fullName: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),
@@ -21,10 +22,11 @@ interface SignupFormProps {
 }
 
 export function SignupForm({ onSwitchToLogin }: SignupFormProps) {
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [errors, setErrors] = useState<{ email?: string; password?: string; confirmPassword?: string }>({});
+  const [errors, setErrors] = useState<{ fullName?: string; email?: string; password?: string; confirmPassword?: string }>({});
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
   const navigate = useNavigate();
@@ -33,9 +35,9 @@ export function SignupForm({ onSwitchToLogin }: SignupFormProps) {
     e.preventDefault();
     setErrors({});
 
-    const result = signupSchema.safeParse({ email, password, confirmPassword });
+    const result = signupSchema.safeParse({ fullName, email, password, confirmPassword });
     if (!result.success) {
-      const fieldErrors: { email?: string; password?: string; confirmPassword?: string } = {};
+      const fieldErrors: { fullName?: string; email?: string; password?: string; confirmPassword?: string } = {};
       result.error.errors.forEach((err) => {
         const field = err.path[0] as keyof typeof fieldErrors;
         fieldErrors[field] = err.message;
@@ -45,7 +47,7 @@ export function SignupForm({ onSwitchToLogin }: SignupFormProps) {
     }
 
     setLoading(true);
-    const { error } = await signUp(email, password);
+    const { error, needsEmailVerification } = await signUp(email, password, fullName);
     setLoading(false);
 
     if (error) {
@@ -57,8 +59,17 @@ export function SignupForm({ onSwitchToLogin }: SignupFormProps) {
       return;
     }
 
-    toast.success("Account created successfully!");
-    navigate("/");
+    if (needsEmailVerification) {
+      toast.success("Please check your email to verify your account!", {
+        description: `We sent a verification link to ${email}`,
+        duration: 10000,
+      });
+      // Don't navigate - user needs to verify email first
+    } else {
+      // Email verification is disabled in Supabase, auto-login happened
+      toast.success("Account created successfully!");
+      navigate("/");
+    }
   };
 
   return (
@@ -68,6 +79,15 @@ export function SignupForm({ onSwitchToLogin }: SignupFormProps) {
         description="Get started with your free account"
       />
       <form onSubmit={handleSubmit} className="space-y-5">
+        <FormInput
+          label="Full Name"
+          type="text"
+          placeholder="John Doe"
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+          error={errors.fullName}
+          autoComplete="name"
+        />
         <FormInput
           label="Email"
           type="email"

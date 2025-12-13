@@ -6,7 +6,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null; needsEmailVerification: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
@@ -38,18 +38,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, fullName: string) => {
     const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
+
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: redirectUrl
+        emailRedirectTo: redirectUrl,
+        data: {
+          full_name: fullName,
+        }
       }
     });
-    
-    return { error: error as Error | null };
+
+    // If signup successful and we have a user, update the profiles table
+    if (!error && data?.user) {
+      await supabase
+        .from('profiles')
+        .update({ full_name: fullName })
+        .eq('id', data.user.id);
+    }
+
+    // If user exists but no session, email verification is required
+    const needsEmailVerification = !error && data?.user && !data?.session;
+
+    return { error: error as Error | null, needsEmailVerification };
   };
 
   const signIn = async (email: string, password: string) => {
@@ -57,7 +71,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       password
     });
-    
+
+    if (error) {
+      // Security Hardening: Handle Rate Limiting
+      if (error.status === 429) {
+        return { error: new Error("Too many login attempts. Please try again in a few minutes.") };
+      }
+      // Security Hardening: Handle Unverified Email
+      if (error.message.includes("Email not confirmed")) {
+        return { error: new Error("Please verify your email address before logging in.") };
+      }
+    }
+
     return { error: error as Error | null };
   };
 
